@@ -18,7 +18,7 @@ permissions:
 env:
   DOTNET_VERSION_6: "6.0.x"   # legacy (remove once everything is upgraded)
   DOTNET_VERSION_10: "10.0.x" # "latest" acceptable for the assignment (8/9/10 ok)
-  WORKING_FOLDER: "./11 - SportsStore - 5"
+  WORKING_FOLDER: "./11 - SportsStore - 5/End of Chapter/SportsSln"
 
 jobs:
   build-and-test:
