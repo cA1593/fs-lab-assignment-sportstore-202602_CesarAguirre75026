@@ -18,6 +18,7 @@ permissions:
 env:
   DOTNET_VERSION_6: "6.0.x"   # legacy (remove once everything is upgraded)
   DOTNET_VERSION_10: "10.0.x" # "latest" acceptable for the assignment (8/9/10 ok)
+   WORKING_FOLDER: "./11 - SportsStore - 5"
 
 jobs:
   build-and-test:
@@ -42,7 +43,7 @@ jobs:
         shell: bash
         run: |
           set -e
-          find . \
+          find "${{ env.WORKING_FOLDER }}" \
             -type d \( -name bin -o -name obj -o -name .git -o -name .github \) -prune -false \
             -o -type f -name "*.sln" -print0 \
             | sort -z \
@@ -54,7 +55,7 @@ jobs:
             echo "(none)"
           fi
           if [ ! -s solutions.zlist ]; then
-            find . \
+            find "${{ env.WORKING_FOLDER }}" \
               -type d \( -name bin -o -name obj -o -name .git -o -name .github \) -prune -false \
               -o -type f -name "*.csproj" -print0 \
               | grep -zEi "(tests|test)\.csproj$" \
