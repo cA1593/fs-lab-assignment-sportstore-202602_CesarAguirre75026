@@ -1,9 +1,25 @@
+using Serilog;
+
 using Microsoft.EntityFrameworkCore;
 using SportsStore.Models;
 
 using Microsoft.AspNetCore.Identity;
 
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(new ConfigurationBuilder()
+        .AddJsonFile("appsettings.json")
+        .Build())
+    .Enrich.FromLogContext()
+    .CreateLogger();
+
 var builder = WebApplication.CreateBuilder(args);
+
+
+Log.Information("SportsStore application is starting");
+
+builder.Host.UseSerilog();
+
+
 
 builder.Services.AddControllersWithViews();
 
