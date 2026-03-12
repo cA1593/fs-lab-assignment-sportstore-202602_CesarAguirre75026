@@ -83,6 +83,19 @@ namespace SportsStore.Tests {
             // Arrange - create a mock logger
             Mock<ILogger<OrderController>> logger = new Mock<ILogger<OrderController>>();
             Mock<IStripePaymentService> stripeService = new Mock<IStripePaymentService>();
+
+            stripeService
+                .Setup(s => s.CreateCheckoutSessionAsync(
+                    It.IsAny<Order>(),
+                    It.IsAny<Cart>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>()))
+                .ReturnsAsync(new Stripe.Checkout.Session
+                {
+                    Id = "cs_test_123",
+                    Url = "https://checkout.stripe.com/test-session"
+                });
+
             // Arrange - create an instance of the controller
             OrderController target = new OrderController(mock.Object, cart, logger.Object, stripeService.Object);
 
@@ -90,12 +103,13 @@ namespace SportsStore.Tests {
 
             // Act - try to checkout
             IActionResult actionResult = await target.Checkout(new Order());
-            RedirectToActionResult? result = actionResult as RedirectToActionResult;
+            RedirectResult? result = actionResult as RedirectResult;
 
             // Assert - check that the order has been stored
             mock.Verify(m => m.SaveOrder(It.IsAny<Order>()), Times.Once);
             // Assert - check that the method is redirecting to the Completed action
             Assert.NotNull(result);
+            Assert.Equal("https://checkout.stripe.com/test-session", result?.Url);
         }
     }
 }
