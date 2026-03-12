@@ -1,10 +1,12 @@
-using Serilog;
-
-using Microsoft.EntityFrameworkCore;
-using SportsStore.Models;
-
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Serilog;
+using SportsStore.Models;
+using SportsStore.Services;
+using Stripe;
 
+
+// Configure Serilog
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(new ConfigurationBuilder()
         .AddJsonFile("appsettings.json")
@@ -14,11 +16,11 @@ Log.Logger = new LoggerConfiguration()
 
 var builder = WebApplication.CreateBuilder(args);
 
-
+// Add Serilog to the logging pipeline
 Log.Information("SportsStore application is starting");
 
+// Use Serilog as the logging provider
 builder.Host.UseSerilog();
-
 
 
 builder.Services.AddControllersWithViews();
@@ -28,8 +30,15 @@ builder.Services.AddDbContext<StoreDbContext>(opts => {
         builder.Configuration["ConnectionStrings:SportsStoreConnection"]);
 });
 
+// Register the product repository
 builder.Services.AddScoped<IStoreRepository, EFStoreRepository>();
+
+// Register the order repository
 builder.Services.AddScoped<IOrderRepository, EFOrderRepository>();
+
+// Register the Stripe payment service
+builder.Services.AddScoped<IStripePaymentService, StripePaymentService>();
+
 
 builder.Services.AddRazorPages();
 builder.Services.AddDistributedMemoryCache();
@@ -42,10 +51,18 @@ builder.Services.AddDbContext<AppIdentityDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration["ConnectionStrings:IdentityConnection"]));
 
+// Add Identity services
 builder.Services.AddIdentity<IdentityUser, IdentityRole>()
     .AddEntityFrameworkStores<AppIdentityDbContext>();
 
+// Configure Stripe settings
+builder.Services.Configure<StripeSettings>(
+    builder.Configuration.GetSection("Stripe"));
+
 var app = builder.Build();
+
+// Set the Stripe API key from configuration
+StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"];
 
 if (app.Environment.IsProduction()) {
     app.UseExceptionHandler("/error");
