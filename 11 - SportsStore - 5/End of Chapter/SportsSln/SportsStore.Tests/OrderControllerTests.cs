@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
 using SportsStore.Controllers;
@@ -19,7 +20,6 @@ namespace SportsStore.Tests {
             Cart cart = new Cart();
             // Arrange - create the order
             Order order = new Order();
-
 
             // Arrange - create a mock logger
             Mock<ILogger<OrderController>> logger = new Mock<ILogger<OrderController>>();
@@ -48,13 +48,11 @@ namespace SportsStore.Tests {
             Cart cart = new Cart();
             cart.AddItem(new Product(), 1);
 
-
             // Arrange - create a mock logger
             Mock<ILogger<OrderController>> logger = new Mock<ILogger<OrderController>>();
             Mock<IStripePaymentService> stripeService = new Mock<IStripePaymentService>();
             // Arrange - create an instance of the controller
             OrderController target = new OrderController(mock.Object, cart, logger.Object, stripeService.Object);
-
 
             // Arrange - add an error to the model
             target.ModelState.AddModelError("error", "error");
@@ -79,23 +77,43 @@ namespace SportsStore.Tests {
             Cart cart = new Cart();
             cart.AddItem(new Product(), 1);
 
-
             // Arrange - create a mock logger
             Mock<ILogger<OrderController>> logger = new Mock<ILogger<OrderController>>();
             Mock<IStripePaymentService> stripeService = new Mock<IStripePaymentService>();
+
+            stripeService
+                .Setup(s => s.CreateCheckoutSessionAsync(
+                    It.IsAny<Order>(),
+                    It.IsAny<Cart>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>()))
+                .ReturnsAsync(new Stripe.Checkout.Session
+                {
+                    Id = "cs_test_123",
+                    Url = "https://checkout.stripe.com/test-session"
+                });
+
             // Arrange - create an instance of the controller
             OrderController target = new OrderController(mock.Object, cart, logger.Object, stripeService.Object);
 
-
+            // Arrange - mock HttpContext so Request.Scheme/Host don't throw NullReferenceException
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Scheme = "https";
+            httpContext.Request.Host = new HostString("localhost");
+            target.ControllerContext = new ControllerContext()
+            {
+                HttpContext = httpContext
+            };
 
             // Act - try to checkout
             IActionResult actionResult = await target.Checkout(new Order());
-            RedirectToActionResult? result = actionResult as RedirectToActionResult;
+            RedirectResult? result = actionResult as RedirectResult;
 
             // Assert - check that the order has been stored
             mock.Verify(m => m.SaveOrder(It.IsAny<Order>()), Times.Once);
-            // Assert - check that the method is redirecting to the Completed action
+            // Assert - check that the result is not null and redirects to Stripe
             Assert.NotNull(result);
+            Assert.Equal("https://checkout.stripe.com/test-session", result?.Url);
         }
     }
 }
