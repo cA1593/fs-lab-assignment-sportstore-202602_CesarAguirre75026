@@ -75,12 +75,12 @@ namespace SportsStore.Tests {
 
             OrderController target = new OrderController(mock.Object, cart, logger.Object, stripeService.Object);
 
-            // Mock HttpContext with Request.Scheme
+            // Mock HttpContext so Request.Scheme is available
             var httpContext = new DefaultHttpContext();
             httpContext.Request.Scheme = "https";
             httpContext.Request.Host = new HostString("localhost");
 
-            // Mock IUrlHelper so Url.Action(...) returns a valid string
+            // Mock IUrlHelper so Url.Action(...) doesn't throw
             Mock<IUrlHelper> urlHelper = new Mock<IUrlHelper>();
             urlHelper
                 .Setup(u => u.Action(It.IsAny<UrlActionContext>()))
@@ -99,7 +99,9 @@ namespace SportsStore.Tests {
             IActionResult actionResult = await target.Checkout(new Order());
             RedirectResult? result = actionResult as RedirectResult;
 
-            mock.Verify(m => m.SaveOrder(It.IsAny<Order>()), Times.Once);
+            // SaveOrder is NOT called here - it's called later in PaymentSuccess after Stripe confirms payment
+            mock.Verify(m => m.SaveOrder(It.IsAny<Order>()), Times.Never);
+            // Assert that the controller redirects to the Stripe checkout URL
             Assert.NotNull(result);
             Assert.Equal("https://checkout.stripe.com/test-session", result?.Url);
         }
