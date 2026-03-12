@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.Extensions.Logging;
 using Moq;
 using SportsStore.Controllers;
@@ -96,14 +97,22 @@ namespace SportsStore.Tests {
             // Arrange - create an instance of the controller
             OrderController target = new OrderController(mock.Object, cart, logger.Object, stripeService.Object);
 
-            // Arrange - mock HttpContext so Request.Scheme/Host don't throw NullReferenceException
+            // Arrange - mock HttpContext so Request.Scheme/Host are available
             var httpContext = new DefaultHttpContext();
             httpContext.Request.Scheme = "https";
             httpContext.Request.Host = new HostString("localhost");
+
+            // Arrange - mock IUrlHelper so Url.Action(...) doesn't throw
+            Mock<IUrlHelper> urlHelper = new Mock<IUrlHelper>();
+            urlHelper
+                .Setup(u => u.Action(It.IsAny<UrlActionContext>()))
+                .Returns("https://localhost/order/success");
+
             target.ControllerContext = new ControllerContext()
             {
                 HttpContext = httpContext
             };
+            target.Url = urlHelper.Object;
 
             // Act - try to checkout
             IActionResult actionResult = await target.Checkout(new Order());
