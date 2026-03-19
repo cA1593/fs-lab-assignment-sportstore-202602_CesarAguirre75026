@@ -1,12 +1,16 @@
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace SportsStore.Pages
+public class CompletedModel : PageModel
 {
-    public class CompletedModel : PageModel
+    private readonly ILogger<CompletedModel> _logger;
+
+    public CompletedModel(ILogger<CompletedModel> logger)
     {
-        public void OnGet()
-        {
-        }
+        _logger = logger;
+    }
+
+    public void OnGet(int orderId)
+    {
+        _logger.LogInformation("Order completed page shown for OrderID {OrderId}", orderId);
     }
 }
